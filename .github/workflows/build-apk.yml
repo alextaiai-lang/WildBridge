@@ -1,0 +1,42 @@
+name: Build WildBridge APK
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Write local.properties (API keys)
+        working-directory: WildBridgeApp/android-sdk-v5-as
+        run: |
+          {
+            echo "AIRCRAFT_API_KEY=${{ secrets.AIRCRAFT_API_KEY }}"
+            echo "GMAP_API_KEY=${{ secrets.GMAP_API_KEY }}"
+            echo "MAPLIBRE_TOKEN=${{ secrets.MAPLIBRE_TOKEN }}"
+          } >> local.properties
+
+      - name: Build debug APK
+        working-directory: WildBridgeApp/android-sdk-v5-as
+        run: |
+          chmod +x gradlew
+          ./gradlew :sample:assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wildbridge-debug-apk
+          path: WildBridgeApp/**/outputs/apk/debug/*.apk
+          if-no-files-found: error
